@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hangman Game</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #52daec 0%, #9a0ba2 100%);
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #333;
+    }
+
+    h1 {
+      margin-top: 20px;
+      font-size: 48px;
+      color: #fff;
+    }
+
+    #gameContainer {
+      background: #ffffffcc;
+      border-radius: 12px;
+      padding: 30px;
+      margin-top: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      max-width: 800px;
+      width: 90%;
+      text-align: center;
+    }
+
+    #wordDisplay {
+      font-size: 36px;
+      letter-spacing: 10px;
+      margin: 20px 0;
+      font-weight: bold;
+    }
+
+    #letters button {
+      margin: 5px;
+      padding: 10px 14px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      background-color: #333;
+      color: white;
+      cursor: pointer;
+    }
+
+    #letters button:disabled {
+      background-color: #999;
+      cursor: not-allowed;
+    }
+
+    #message {
+      font-size: 24px;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+
+    #missed {
+      font-size: 20px;
+      color: red;
+      margin-top: 10px;
+    }
+
+    .play-again {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .play-again:hover {
+      background-color: #388e3c;
+    }
+
+    #hangmanContainer {
+      position: relative;
+      width: 200px;
+      height: 250px;
+      margin: 0 auto 20px;
+    }
+
+    .gallows {
+      position: absolute;
+      width: 200px;
+      height: 250px;
+    }
+
+    .gallows::before {
+      content: "";
+      position: absolute;
+      width: 4px;
+      height: 250px;
+      background-color: #000;
+      left: 20px;
+      top: 0;
+    }
+
+    .gallows::after {
+      content: "";
+      position: absolute;
+      width: 120px;
+      height: 4px;
+      background-color: #000;
+      left: 20px;
+      top: 0;
+    }
+
+    .beam {
+      position: absolute;
+      width: 4px;
+      height: 30px;
+      background-color: #000;
+      left: 140px;
+      top: 0;
+    }
+
+    .part {
+      position: absolute;
+      background: #222;
+      display: none;
+    }
+
+    #head {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      top: 30px;
+      left: 120px;
+    }
+
+    #body {
+      width: 4px;
+      height: 60px;
+      top: 70px;
+      left: 138px;
+    }
+
+    #leftArm {
+      width: 40px;
+      height: 4px;
+      top: 100px;
+      left: 98px;
+      transform: rotate(30deg);
+      transform-origin: right;
+    }
+
+    #rightArm {
+      width: 40px;
+      height: 4px;
+      top: 100px;
+      left: 138px;
+      transform: rotate(-30deg);
+      transform-origin: left;
+    }
+
+    #leftLeg {
+      width: 40px;
+      height: 4px;
+      top: 130px;
+      left: 98px;
+      transform: rotate(315deg);
+      transform-origin: right;
+    }
+
+    #rightLeg {
+      width: 40px;
+      height: 4px;
+      top: 130px;
+      left: 138px;
+      transform: rotate(-315deg);
+      transform-origin: left;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Hangman Game</h1>
+  <div id="gameContainer">
+    <div id="hangmanContainer">
+      <div class="gallows"></div>
+      <div class="beam"></div>
+      <div id="head" class="part"></div>
+      <div id="body" class="part"></div>
+      <div id="leftArm" class="part"></div>
+      <div id="rightArm" class="part"></div>
+      <div id="leftLeg" class="part"></div>
+      <div id="rightLeg" class="part"></div>
+    </div>
+
+    <div id="wordDisplay">_ _ _ _</div>
+    <div id="letters"></div>
+    <div id="missed">Wrong guesses: 0</div>
+    <div id="message"></div>
+    <button class="play-again" onclick="startGame()">Play Again</button>
+  </div>
+
+  <script>
+    const wordList = ["javascript", "hangman", "developer", "keyboard", "internet", "browser", "program"];
+    let selectedWord = "";
+    let guessedLetters = [];
+    let wrongGuesses = 0;
+    const maxGuesses = 6;
+
+    const wordDisplay = document.getElementById("wordDisplay");
+    const lettersDiv = document.getElementById("letters");
+    const missed = document.getElementById("missed");
+    const message = document.getElementById("message");
+
+    const parts = [
+      document.getElementById("head"),
+      document.getElementById("body"),
+      document.getElementById("leftArm"),
+      document.getElementById("rightArm"),
+      document.getElementById("leftLeg"),
+      document.getElementById("rightLeg")
+    ];
+
+    function startGame() {
+      selectedWord = wordList[Math.floor(Math.random() * wordList.length)];
+      guessedLetters = [];
+      wrongGuesses = 0;
+      message.textContent = "";
+      missed.textContent = "Wrong guesses: 0";
+      updateWordDisplay();
+      generateLetterButtons();
+      resetHangman();
+    }
+
+    function resetHangman() {
+      parts.forEach(part => part.style.display = "none");
+    }
+
+    function updateWordDisplay() {
+      let display = "";
+      for (let char of selectedWord) {
+        display += guessedLetters.includes(char) ? char + " " : "_ ";
+      }
+      wordDisplay.textContent = display.trim();
+    }
+
+    function generateLetterButtons() {
+      lettersDiv.innerHTML = "";
+      for (let i = 65; i <= 90; i++) {
+        const letter = String.fromCharCode(i).toLowerCase();
+        const btn = document.createElement("button");
+        btn.textContent = letter;
+        btn.onclick = () => guessLetter(letter);
+        lettersDiv.appendChild(btn);
+      }
+    }
+
+    function guessLetter(letter) {
+      document.querySelectorAll("#letters button").forEach(btn => {
+        if (btn.textContent === letter) btn.disabled = true;
+      });
+
+      if (selectedWord.includes(letter)) {
+        guessedLetters.push(letter);
+        updateWordDisplay();
+        checkWin();
+      } else {
+        wrongGuesses++;
+        missed.textContent = `Wrong guesses: ${wrongGuesses}`;
+        if (wrongGuesses <= maxGuesses) {
+          parts[wrongGuesses - 1].style.display = "block";
+        }
+        if (wrongGuesses >= maxGuesses) {
+          message.innerHTML = `😢 You lost! The word was: <strong>${selectedWord}</strong>`;
+          disableAllButtons();
+        }
+      }
+    }
+
+    function checkWin() {
+      let won = true;
+      for (let char of selectedWord) {
+        if (!guessedLetters.includes(char)) {
+          won = false;
+          break;
+        }
+      }
+      if (won) {
+        message.innerHTML = `🎉 You won! The word was: <strong>${selectedWord}</strong>`;
+        disableAllButtons();
+      }
+    }
+
+    function disableAllButtons() {
+      document.querySelectorAll("#letters button").forEach(btn => btn.disabled = true);
+    }
+
+    startGame();
+  </script>
+</body>
+</html>
